@@ -1,0 +1,25 @@
+{
+	"version": 220100,
+	"blocks": 3000,
+	"headers": 3000,
+	"verificationprogress": 1,
+	"timeoffset": 0,
+	"connections": {
+	  "in": 0,
+	  "out": 0,
+	  "total": 0
+	},
+	"proxy": "",
+	"difficulty": {
+	  "proof-of-work": 4.656542373906925e-10,
+	  "proof-of-stake": 4.656542373906925e-10
+	},
+	"chain": "regtest",
+	"moneysupply": 60000000,
+	"keypoolsize": 1000,
+	"paytxfee": 0.00000000,
+	"balance": 0.00000000,
+	"stake": 0.00000000,
+	"relayfee": 0.00400000,
+	"warnings": ""
+      }

@@ -43,7 +43,7 @@ func (ws Wallets) NewWallet(privKeyStr string, cfg *chaincfg.Params) (*QtumWalle
 	}
 	w.SetEthereumAddress(address)
 
-	qtumAddr, err := w.GetAddress()
+	qtumAddr, err := w.GetQtumAddress()
 	if err != nil {
 		return nil, errors.Wrapf(err, "Error getting qtum address for private key: %s", privKeyStr)
 	}

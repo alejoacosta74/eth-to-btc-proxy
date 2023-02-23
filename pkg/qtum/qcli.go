@@ -2,6 +2,7 @@ package qtum
 
 import (
 	"context"
+	"io"
 	"os"
 	"strings"
 
@@ -19,7 +20,7 @@ type QtumClient struct {
 }
 
 func NewQtumClient(host, user, pass, network string) (*QtumClient, error) {
-	log.With("module", "qcli").Debugf("Creating new qtum client for network: %s and host: %s", network, host)
+	log.With("module", "qcli").Tracef("Creating new qtum client for network: %s and host: %s", network, host)
 	host = strings.TrimPrefix(host, "http://")
 	// Connect to local bitcoin core RPC server using HTTP POST method.
 	connCfg := &rpcclient.ConnConfig{
@@ -31,7 +32,13 @@ func NewQtumClient(host, user, pass, network string) (*QtumClient, error) {
 	}
 	// Notice the notification parameter is nil since notifications are
 	// not supported in HTTP POST mode.
-	backend := btclog.NewBackend(os.Stdout)
+	var loggerOutput io.Writer
+	if log.IsDebug() {
+		loggerOutput = os.Stdout
+	} else {
+		loggerOutput = io.Discard
+	}
+	backend := btclog.NewBackend(loggerOutput)
 	rpcclient.UseLogger(backend.Logger("qtum"))
 	qclient, err := rpcclient.New(connCfg, nil)
 	if err != nil {
@@ -65,7 +72,7 @@ func NewQtumClient(host, user, pass, network string) (*QtumClient, error) {
 	if qcli.Disconnected() {
 		return nil, errors.New("Qtum client is disconnected")
 	} else {
-		log.With("module", "qcli").Debugf("Qtum client is connected")
+		log.With("module", "qcli").Tracef("Qtum client is connected")
 	}
 
 	return &qcli, nil

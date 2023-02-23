@@ -1,0 +1,6 @@
+/bin
+/data
+*.log
+regtest
+.DS_Store
+godegraph.png

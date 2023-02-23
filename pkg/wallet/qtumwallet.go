@@ -54,16 +54,18 @@ func (w *QtumWallet) GetEthereumAddress() *common.Address {
 	return w.ethereumAddr
 }
 
+/*
 func (w *QtumWallet) GetAddressPubKey() (btcutil.Address, error) {
 	addrPubKey, err := btcutil.NewAddressPubKey(w.wif.PrivKey.PubKey().SerializeCompressed(), w.cfg)
 	if err != nil {
-		return nil, errors.Wrap(err, "Failed to generate addressi pubkey from private key")
+		return nil, errors.Wrap(err, "Failed to generate address pubkey from private key")
 	}
 	return addrPubKey, nil
 }
+*/
 
-// GetAddress returns the address associated with the wallet in base58 format
-func (w *QtumWallet) GetAddress() (string, error) {
+// GetQtumAddress returns the address associated with the wallet's private key in base58 format
+func (w *QtumWallet) GetQtumAddress() (string, error) {
 	addrPubKey, err := btcutil.NewAddressPubKey(w.wif.PrivKey.PubKey().SerializeCompressed(), w.cfg)
 	if err != nil {
 		return "", errors.Wrap(err, "Failed to generate address pubkey from private key")

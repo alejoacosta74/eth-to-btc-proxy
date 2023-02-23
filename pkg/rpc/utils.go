@@ -4,33 +4,9 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-
-	"github.com/alejoacosta74/rpc-proxy/pkg/log"
-	"github.com/qtumproject/btcd/wire"
 )
 
-// printQtumDecodedTX prints a decoded QTUM transaction
-func (api *EthAPI) printQtumDecodedTX(qtumTx *wire.MsgTx, msg string) {
-	var buf bytes.Buffer
-	err := qtumTx.Serialize(&buf)
-	if err != nil {
-		log.With("method", "sendrawtx").Debugf(err.Error())
-		return
-	}
-	decoded, err := api.qcli.DecodeRawTransaction(buf.Bytes())
-	if err != nil {
-		log.With("method", "sendrawtx").Debugf(err.Error())
-		return
-	}
-	decodedBytes, err := json.Marshal(decoded)
-	if err != nil {
-		log.With("method", "sendrawtx").Debugf(err.Error())
-		return
-	}
-	logPretty(msg, decodedBytes)
-}
-
-// logPretty logs a JSON string in a json indented format
+// logPretty prints out a JSON byte array as a JSON indented format
 func logPretty(msg string, output []byte) {
 	if len(output) > 0 {
 		var prettyJSON bytes.Buffer

@@ -1,12 +1,16 @@
 package rpc
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
 
+	"github.com/alejoacosta74/rpc-proxy/pkg/log"
 	"github.com/alejoacosta74/rpc-proxy/pkg/qtum"
 	"github.com/ethereum/go-ethereum/rpc"
 	"github.com/pkg/errors"
 	"github.com/qtumproject/btcd/chaincfg"
+	"github.com/qtumproject/btcd/wire"
 )
 
 type RPCService struct {
@@ -66,6 +70,27 @@ func (api *API) SetNetworkParams(cfg *chaincfg.Params) {
 type NetAPI API
 type EthAPI API
 type PersonalAPI API
+
+// printQtumDecodedTX prints a decoded QTUM transaction
+func (api *EthAPI) printQtumDecodedTX(qtumTx *wire.MsgTx, msg string) {
+	var buf bytes.Buffer
+	err := qtumTx.Serialize(&buf)
+	if err != nil {
+		log.With("method", "sendrawtx").Debugf(err.Error())
+		return
+	}
+	decoded, err := api.qcli.DecodeRawTransaction(buf.Bytes())
+	if err != nil {
+		log.With("method", "sendrawtx").Debugf(err.Error())
+		return
+	}
+	decodedBytes, err := json.Marshal(decoded)
+	if err != nil {
+		log.With("method", "sendrawtx").Debugf(err.Error())
+		return
+	}
+	logPretty(msg, decodedBytes)
+}
 
 func getNetworkConfig(network string) (*chaincfg.Params, error) {
 	switch network {

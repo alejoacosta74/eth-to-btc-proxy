@@ -2,6 +2,7 @@ package testutils
 
 import (
 	"fmt"
+	"os"
 
 	"github.com/alejoacosta74/gologger"
 	"github.com/alejoacosta74/rpc-proxy/pkg/log"
@@ -10,7 +11,6 @@ import (
 )
 
 const (
-	Debug    = true
 	Network  = "testnet"
 	QtumURL  = "http://localhost:13881"
 	QtumUser = "qtum"
@@ -19,13 +19,24 @@ const (
 
 var (
 	ChainCfg *chaincfg.Params
+	Debug    bool
 )
 
 func init() {
+	// Read environment DEBUG variable
+	environ := os.Environ()
+	for _, env := range environ {
+		if env == "DEBUG=true" {
+			Debug = true
+		}
+	}
+
 	SetLogger()
-	fmt.Printf("\nSetting logger with level debug: %+v\n", Debug)
 	SetNetworkConfig()
-	fmt.Printf("Setting testing network config to name: %+v and network: %+v \n", ChainCfg.Name, ChainCfg.Net)
+	if Debug {
+		fmt.Printf("\nSetting logger with level debug: %+v\n", Debug)
+		fmt.Printf("Setting testing network config to name: %+v and network: %+v \n", ChainCfg.Name, ChainCfg.Net)
+	}
 }
 
 func SetLogger() {

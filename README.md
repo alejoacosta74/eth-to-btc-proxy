@@ -63,7 +63,7 @@ Integration tests can be run with `make integration-test` (TO-DO)
 
 1. Add SSL support
 2. Implement bitcoin wallet to store private keys persistently
-3. Implement ethereum signature verification
+3. ~~Implement ethereum signature verification~~ :white_check_mark:
 4. Implement all possible ethereum interaction use cases:
    
    a. Create a contract
@@ -72,6 +72,6 @@ Integration tests can be run with `make integration-test` (TO-DO)
 
    c. ...
 5. Add new test cases
-6. Add support for EIP 1155 signature
+6. ~~Add support for EIP 1155 signature~~ :white_check_mark:
 7. Add persistent mapping between ethereum tx hash and qtum tx hash
 8. Implement automated integration tests for all use cases using Qtum regtest network

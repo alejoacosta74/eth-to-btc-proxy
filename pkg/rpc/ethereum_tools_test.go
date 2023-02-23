@@ -1,83 +1,100 @@
 package rpc
 
 import (
-	"crypto/ecdsa"
+	"bytes"
 	"encoding/hex"
-	"fmt"
 	"math/big"
 	"testing"
 
-	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
-	"github.com/ethereum/go-ethereum/crypto"
-	"github.com/stretchr/testify/assert"
 )
 
+var privKeyHex string = "fad9c8855b740a0b7ed4c221dbad0f33a83a49cad6b3fe8d5817ac83d38b6a19"
+
+var tests = []struct {
+	name   string
+	signer types.Signer
+	want   bool
+}{
+	{
+		name:   "homestead",
+		signer: types.HomesteadSigner{},
+		want:   true,
+	},
+	{
+		name:   "eip155 chain id 1",
+		signer: types.NewEIP155Signer(big.NewInt(1)),
+		want:   true,
+	},
+	{
+		name:   "eip155 chain id 2",
+		signer: types.NewEIP155Signer(big.NewInt(2)),
+		want:   true,
+	},
+}
+
 func TestVerifyTxSignature(t *testing.T) {
-	assert := assert.New(t)
-	var privKeyHex string = "fad9c8855b740a0b7ed4c221dbad0f33a83a49cad6b3fe8d5817ac83d38b6a19"
-	privKey, _ := crypto.HexToECDSA(privKeyHex)
-	address := crypto.PubkeyToAddress(privKey.PublicKey)
-	fmt.Printf("public key: %x\n", crypto.FromECDSAPub(&privKey.PublicKey))
-	fmt.Printf("address: %s\n", address.Hex())
-	tx := NewTx()
+	// privKey, _ := crypto.HexToECDSA(privKeyHex)
+	// address := crypto.PubkeyToAddress(privKey.PublicKey)
+	// fmt.Printf("public key: %x\n", crypto.FromECDSAPub(&privKey.PublicKey))
+	// fmt.Printf("address: %s\n", address.Hex())
+	tx := newEthereumTx()
 
-	signer := types.HomesteadSigner{}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
 
-	signedTx, err := SignTx(tx, signer, privKeyHex)
-	if err != nil {
-		panic("error signing transaction: %v" + err.Error())
+			signedTx, err := signEthereumTx(tx, tt.signer, privKeyHex)
+			if err != nil {
+				panic("error signing transaction: %v" + err.Error())
+			}
+			// PrintRawTx(signedTx, "signed transaction")
+			pubKeyHex, err := privToPubKey(privKeyHex)
+			if err != nil {
+				panic("error converting private key to public key: %v" + err.Error())
+			}
+			verify := VerifyTxSignature(signedTx, pubKeyHex)
+			if verify != tt.want {
+				t.Fatalf("VerifyTxSignature() = %v, want %v", verify, tt.want)
+			}
+		})
 	}
-	PrintRawTx(signedTx, "signed transaction")
-	pubKeyHex, err := PrivToPubKey(privKeyHex)
-	if err != nil {
-		panic("error converting private key to public key: %v" + err.Error())
-	}
-	verify := VerifyTxSignature(signedTx, pubKeyHex)
-	assert.True(verify)
 
 }
 
-// PrivToPubKey converts a ECDSA private key hex string to a public key.
-func PrivToPubKey(privKeyHex string) (string, error) {
-	privKey, err := crypto.HexToECDSA(privKeyHex)
-	if err != nil {
-		return "", err
-	}
-	pubKey := privKey.Public()
-	pubKeyECDSA, ok := pubKey.(*ecdsa.PublicKey)
-	if !ok {
-		return "", fmt.Errorf("error casting public key to ECDSA")
-	}
-	pubKeyBytes := crypto.FromECDSAPub(pubKeyECDSA)
-	return hex.EncodeToString(pubKeyBytes), nil
-}
+func TestDecodeRawTx(t *testing.T) {
+	tx := newEthereumTx()
 
-// NewTx() creates a new unsigned ethereum transaction with default parameters.
-func NewTx() *types.Transaction {
-	nonce := uint64(0)
-	gasPrice := big.NewInt(20000000000)
-	gasLimit := uint64(21000)
-	toAddress := common.HexToAddress("0x71517f86711b4bff4d789ad6fee9a58d8af1c6bb")
-	amount := big.NewInt(1000000)
-	tx := types.NewTransaction(nonce, toAddress, amount, gasLimit, gasPrice, nil)
-	return tx
-}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			signedTx, err := signEthereumTx(tx, tt.signer, privKeyHex)
+			if err != nil {
+				t.Fatalf("error signing transaction: %v", err)
+			}
 
-// SignTx() signs an ethereum transaction with a private key.
-func SignTx(tx *types.Transaction, signer types.Signer, privKeyHex string) (*types.Transaction, error) {
-	privKey, err := crypto.HexToECDSA(privKeyHex)
-	if err != nil {
-		return nil, err
-	}
-	signedTx, err := types.SignTx(tx, signer, privKey)
-	if err != nil {
-		return nil, err
-	}
-	return signedTx, nil
-}
+			buf := new(bytes.Buffer)
+			if err := signedTx.EncodeRLP(buf); err != nil {
+				t.Fatalf("error encoding transaction: %v", err)
+			}
+			rlpEncodedTx := buf.Bytes()
+			rlpEncodedTxHex := hex.EncodeToString(rlpEncodedTx)
 
-func PrintRawTx(tx *types.Transaction, msg string) {
-	rawTx, _ := tx.MarshalJSON()
-	logPretty(msg, rawTx)
+			decodedTx, err := decodeRawTx(rlpEncodedTxHex)
+			if err != nil {
+				t.Fatalf("error decoding transaction: %v", err)
+			}
+
+			want, err := signedTx.MarshalJSON()
+			if err != nil {
+				t.Fatalf("error marshalling transaction: %v", err)
+			}
+			got, err := decodedTx.MarshalJSON()
+			if err != nil {
+				t.Fatalf("error marshalling transaction: %v", err)
+			}
+			if !bytes.Equal(want, got) {
+				t.Fatalf("decoded transaction does not match original transaction: want %s, got %s", want, got)
+			}
+		})
+	}
+
 }

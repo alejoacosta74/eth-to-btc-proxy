@@ -1,0 +1,19 @@
+{
+	"walletname": "example",
+	"walletversion": 169900,
+	"format": "bdb",
+	"balance": 0.00000000,
+	"stake": 0.00000000,
+	"unconfirmed_balance": 0.00000000,
+	"immature_balance": 0.00000000,
+	"txcount": 0,
+	"keypoololdest": 1676593362,
+	"keypoolsize": 1000,
+	"hdseedid": "c3b3fbfcb004572f5108368dd76665b9491a1b39",
+	"keypoolsize_hd_internal": 1000,
+	"paytxfee": 0.00000000,
+	"private_keys_enabled": true,
+	"avoid_reuse": false,
+	"scanning": false,
+	"descriptors": false
+      }

@@ -12,6 +12,16 @@ import (
 	"github.com/qtumproject/btcd/chaincfg/chainhash"
 	"github.com/qtumproject/btcd/txscript"
 	"github.com/qtumproject/btcd/wire"
+	"github.com/shopspring/decimal"
+)
+
+const (
+	// DefaultGasPrice is the default gas price used for transactions
+	DefaultGasPrice = 10000
+	// Qtum is the number of satoshis in 1 Qtum
+	Qtum = 100000000
+	// Precision digits to use for decimal operations with Qtum amounts
+	PrecisionExp = -8
 )
 
 // findCoinStake returns the transaction hash of the coinstake transaction in the block
@@ -75,14 +85,13 @@ func (q *QtumClient) GetTransactionIndex(txHash string, block *btcjson.GetBlockV
 }
 
 // FindSpendableUTXO returns a list of spendable UTXOs for the given address
-// with a total amount greater than the given amount
+// with a total amount equal or greater than the given amount
+//
+// Params:
+//   - addr: the address to search for UTXOs in base58 format
+//   - amount: the amount to search for in Qtum
 func (q *QtumClient) FindSpendableUTXO(addr string, amount float64) ([]btcjson.ListUnspentResult, error) {
 
-	// ensure the address is known to the node's wallet
-	err := q.VerifyAddress(addr)
-	if err != nil {
-		return nil, errors.Wrapf(err, "Error verifying address: %s", addr)
-	}
 	log.With("module", "qtum").Tracef("Searching unspent utxos for address %s with a total amount of %v: ", addr, amount)
 	address, err := btcutil.DecodeAddress(addr, q.cfg)
 	if err != nil {
@@ -101,6 +110,7 @@ func (q *QtumClient) FindSpendableUTXO(addr string, amount float64) ([]btcjson.L
 			continue
 		}
 		total += utxo.Amount
+		// TODO: consider gas fee here
 		if total >= amount {
 			log.With("module", "qtum").Tracef("Unspent utxos returned: %+v", unspent)
 			return unspent[:i+1], nil
@@ -110,9 +120,16 @@ func (q *QtumClient) FindSpendableUTXO(addr string, amount float64) ([]btcjson.L
 	return unspent, errors.New("not enough UTXOs found")
 }
 
-// PrepareRawTransaction creates a qtum/btc raw transaction using the given parameters
-// to create inputs and resulting outputs
-func (q *QtumClient) PrepareRawTransaction(unspent []btcjson.ListUnspentResult, sender, receiver string, amount float64) (*wire.MsgTx, error) {
+// BuildUnsignedQtumTx creates a qtum/btc raw transaction using the given parameters
+// to create inputs and resulting outputs.
+// Returns a wire.MsgTx ready to be signed and sent to the network
+//
+// Params:
+//   - unspent: a list of unspent outputs to use as inputs
+//   - sender: the sender address in base58 format
+//   - receiver: the receiver address in base58 format
+//   - amount: the amount to send in Qtum
+func (q *QtumClient) BuildUnsignedQtumTx(unspent []btcjson.ListUnspentResult, sender, receiver string, amount float64) (*wire.MsgTx, error) {
 
 	//1. Create new empty transaction
 	tx := wire.NewMsgTx(wire.TxVersion)
@@ -157,28 +174,12 @@ func (q *QtumClient) PrepareRawTransaction(unspent []btcjson.ListUnspentResult, 
 	tx.AddTxOut(txOut)
 
 	// TODO: research querying of gas fee dynamically
-	// Estimate gas fee
-	// txSize := int64(tx.SerializeSize() / 1000)
-	// log.With("module", "qtum").Tracef("Estimated tx size: %v KB", txSize)
-	// gas, err := q.EstimateFee(txSize)
-	// gas, err := q.EstimateSmartFee(6, nil)
-	// if err != nil {
-	// 	return nil, errors.Wrapf(err, "Error estimating gas fee")
-	// }
-	// log.With("module", "qtum").Tracef("Estimated gas fee: %+v", gas)
-	// if gas.FeeRate == nil {
-	// 	*gas.FeeRate = 100000
-	// }
-	// ! hardcoded gas fee
-	gas := float64(100000)
 
-	// Calculate change
-	utxoTotalAmount := sumUTXO(unspent)
-	change := utxoTotalAmount - amount - gas
-	log.With("module", "qtum").Debugf("Total utxo value: %v, change value: %v", utxoTotalAmount, change)
-
-	if change > 0 {
-		changeAmount, err := btcutil.NewAmount(change)
+	change := calculateChange(unspent, amount)
+	// create change output
+	if change.GreaterThan(decimal.NewFromFloat(0)) {
+		changeF, _ := change.Float64()
+		changeAmount, err := btcutil.NewAmount(changeF)
 		if err != nil {
 			return nil, errors.Wrapf(err, "Error converting change amount %v", change)
 		}
@@ -198,31 +199,79 @@ func (q *QtumClient) PrepareRawTransaction(unspent []btcjson.ListUnspentResult, 
 // signatures for the inputs.
 //
 // The transaction is not sent to the network.
-func (q *QtumClient) SignRawTX(tx *wire.MsgTx, unspent []btcjson.ListUnspentResult, w *wallet.QtumWallet) error {
+//
+// Params:
+//   - tx: the transaction to sign
+//   - unspent: the list of outputs referenced by the inputs to sign
+//   - w: the wallet to use for signing
+func (q *QtumClient) SignRawTX(tx *wire.MsgTx, unspent []btcjson.ListUnspentResult, w wallet.IQtumWallet) error {
 
 	// Sign inputs
-	for i, utxo := range unspent {
-		privKey, err := w.GetPrivateKey(utxo.Address)
-		if err != nil {
-			return errors.Wrapf(err, "Error getting private key for address: %s", utxo.Address)
+	for i, txin := range tx.TxIn {
+		//check unspent length
+		if i >= len(unspent) {
+			return errors.New("unspent length is less than txin length")
 		}
-		scriptPubKey, err := hex.DecodeString(utxo.ScriptPubKey)
+		// Take the address from the input and get the private key from the wallet
+		privKey, err := w.GetPrivateKey(unspent[i].Address)
 		if err != nil {
-			return errors.Wrapf(err, "Error decoding scriptPubKey: %s", utxo.ScriptPubKey)
+			return errors.Wrapf(err, "Error getting private key for address: %s", unspent[i].Address)
 		}
-		tx.TxIn[i].SignatureScript, err = txscript.SignatureScript(tx, i, scriptPubKey, txscript.SigHashAll, privKey, true)
+		scriptPubKey, err := hex.DecodeString(unspent[i].ScriptPubKey)
+		if err != nil {
+			return errors.Wrapf(err, "Error decoding scriptPubKey: %s", unspent[i].ScriptPubKey)
+		}
+
+		sigScript, err := txscript.SignatureScript(
+			tx,
+			i,
+			scriptPubKey,
+			txscript.SigHashAll,
+			privKey,
+			true,
+		)
 		if err != nil {
 			return errors.Wrapf(err, "Error signing input %d", i)
 		}
 
+		txin.SignatureScript = sigScript
 	}
+
 	return nil
 }
 
+// sumUTXO sums the amount of all unspent outputs in the given list
 func sumUTXO(list []btcjson.ListUnspentResult) float64 {
 	var sum float64
 	for _, utxo := range list {
 		sum += utxo.Amount
 	}
 	return sum
+}
+
+// calculateChange calculates the change amount due to the sender
+func calculateChange(unspent []btcjson.ListUnspentResult, amount float64) decimal.Decimal {
+	// TODO: research querying of gas fee dynamically
+	// Estimate gas fee
+	// txSize := int64(tx.SerializeSize() / 1000)
+	// log.With("module", "qtum").Tracef("Estimated tx size: %v KB", txSize)
+	// gas, err := q.EstimateFee(txSize)
+	// gas, err := q.EstimateSmartFee(6, nil)
+	// if err != nil {
+	// 	return nil, errors.Wrapf(err, "Error estimating gas fee")
+	// }
+	// log.With("module", "qtum").Tracef("Estimated gas fee: %+v", gas)
+	// if gas.FeeRate == nil {
+	// 	*gas.FeeRate = 100000
+	// }
+
+	// ! hardcoded gas fee in satoshis
+	gasSatoshis := DefaultGasPrice
+	gas := decimal.NewFromFloatWithExponent(float64(gasSatoshis)/Qtum, PrecisionExp)
+	utxoTotalAmount := decimal.NewFromFloatWithExponent(sumUTXO(unspent), PrecisionExp)
+	amountToSend := decimal.NewFromFloatWithExponent(amount, PrecisionExp)
+	change := utxoTotalAmount.Sub(amountToSend).Sub(gas)
+	log.With("module", "qtum").Debugf("total amount value: %v, total utxo value: %v, gasFee value %v, change value: %v", amount, utxoTotalAmount, gas, change)
+	return change
+
 }

@@ -6,8 +6,8 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/alejoacosta74/rpc-proxy/pkg/handlers"
 	"github.com/alejoacosta74/rpc-proxy/pkg/rpc"
+	"github.com/alejoacosta74/rpc-proxy/pkg/server/handlers"
 
 	"github.com/alejoacosta74/rpc-proxy/pkg/log"
 	"github.com/alejoacosta74/rpc-proxy/pkg/qtum"
@@ -20,7 +20,7 @@ type Server struct {
 	address string
 }
 
-func NewServer(localAddress string, backendUrl string, qcli *qtum.QtumClient, network string) (*Server, error) {
+func NewServer(localAddress string, backendUrl string, qcli qtum.Iqcli, network string) (*Server, error) {
 	ctx := context.Background()
 
 	router := mux.NewRouter()

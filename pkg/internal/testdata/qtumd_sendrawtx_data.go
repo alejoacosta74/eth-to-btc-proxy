@@ -1,3 +1,0 @@
-package testdata
-
-const SendRawTXResult = "06d48766c315b30b08cdcc2c34dc062ee4b3885dfc2414d5940c25225e058c2b"

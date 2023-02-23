@@ -39,7 +39,10 @@ require (
 
 require github.com/qtumproject/btcd/chaincfg/chainhash v1.0.1-beta.qtum
 
-require github.com/alejoacosta74/gologger v0.0.3
+require (
+	github.com/alejoacosta74/gologger v0.0.3
+	github.com/google/go-cmp v0.5.9
+)
 
 require (
 	github.com/StackExchange/wmi v0.0.0-20180116203802-5d049714c4a6 // indirect

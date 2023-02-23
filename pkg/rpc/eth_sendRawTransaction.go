@@ -2,18 +2,21 @@ package rpc
 
 import (
 	"github.com/alejoacosta74/rpc-proxy/pkg/log"
-	"github.com/alejoacosta74/rpc-proxy/pkg/types"
+	rpctypes "github.com/alejoacosta74/rpc-proxy/pkg/rpc/types"
 	"github.com/alejoacosta74/rpc-proxy/pkg/wallet"
+	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/pkg/errors"
 	qcommon "github.com/qtumproject/qtool/lib/common"
 	qtool "github.com/qtumproject/qtool/lib/tools"
 )
 
+// TODO: replace return type with common.Hash
+
 // SendRawTransactionRequest implements the eth_sendRawTransaction JSON-RPC call.
 //
 // Receives an ethereum signed transaction, decodes it and
 // creates a new transaction signed with the stored private key
-func (api *EthAPI) SendRawTransaction(rawtx string) (*types.Eth_SendRawTransactionResponse, error) {
+func (api *EthAPI) SendRawTransaction(rawtx string) (*rpctypes.Eth_SendRawTransactionResponse, error) {
 	log.With("method", "sendrawtx").Debugf("SendRawTransaction called with rawtx: %+v", rawtx)
 
 	// Decode raw transaction
@@ -26,27 +29,39 @@ func (api *EthAPI) SendRawTransaction(rawtx string) (*types.Eth_SendRawTransacti
 
 	// Load wallet for sender eth hex address
 	ws := wallet.GetWallets()
-	w, err := ws.SeekWallet(decodedTx.From)
+	sender, err := getFromAddress(decodedTx)
 	if err != nil {
 		log.With("method", "sendrawtx").Debugf(err.Error())
-		return nil, errors.Wrapf(err, "Error loading wallet for address: %s", decodedTx.From)
+		return nil, errors.Wrapf(err, "Error getting sender address from raw transaction: %s", rawtx)
+	}
+	w, err := ws.SeekWallet(sender.String())
+	if err != nil {
+		log.With("method", "sendrawtx").Debugf(err.Error())
+		return nil, errors.Wrapf(err, "Error loading wallet for address: %s", sender.String())
 	}
 	// Get address in qtum/btc format
-	addr, err := w.GetAddress()
+	addr, err := w.GetQtumAddress()
 	log.With("module", "eth_sendRawTransaction").Debugf("Wallet returned address encoded: %s", addr)
 
 	if err != nil {
 		log.With("method", "sendrawtx").Debugf(err.Error())
-		return nil, errors.Wrapf(err, "Error getting qtum address for wallet: %s", decodedTx.From)
+		return nil, errors.Wrapf(err, "Error getting qtum address for wallet: %s", sender.String())
 	}
 
 	// Convert value in wei to amount in qtum
-	amount, err := qcommon.ConvertWeiToQtum(decodedTx.Value)
+	weiAmount := decodedTx.Value
+	amount, err := qcommon.ConvertWeiToQtum(hexutil.EncodeBig(weiAmount()))
 	if err != nil {
 		log.With("method", "sendrawtx").Debugf(err.Error())
-		return nil, errors.Wrapf(err, "Error converting amount to float: %s", decodedTx.Value)
+		return nil, errors.Wrapf(err, "Error converting amount to float: %v", decodedTx.Value().Int64())
 	}
-	log.With("method", "sendrawtx").Debugf("Amount in wei: %v,  amount in Qtum: %f", decodedTx.Value, amount)
+	log.With("method", "sendrawtx").Debugf("Amount in wei: %v,  amount in Qtum: %f", decodedTx.Value().Int64(), amount)
+
+	// ensure the address is known to the node's wallet
+	err = api.qcli.VerifyAddress(addr)
+	if err != nil {
+		return nil, errors.Wrapf(err, "Error verifying address: %s", addr)
+	}
 
 	// Find spendable UTXO for sender address and amount
 	unspent, err := api.qcli.FindSpendableUTXO(addr, amount)
@@ -56,15 +71,16 @@ func (api *EthAPI) SendRawTransaction(rawtx string) (*types.Eth_SendRawTransacti
 	}
 	log.With("method", "sendrawtx").Debugf("Found %d utxos to spent", len(unspent))
 
-	receiver, err := qtool.AddressHexToBase58(decodedTx.To, api.cfg)
+	// Convert receiver address to base58
+	receiver, err := qtool.AddressHexToBase58(decodedTx.To().String(), api.cfg)
 	if err != nil {
 		log.With("method", "sendrawtx").Debugf(err.Error())
-		return nil, errors.Wrapf(err, "Error converting receiver address to base58: %s", decodedTx.To)
+		return nil, errors.Wrapf(err, "Error converting receiver address to base58: %s", decodedTx.To().String())
 	}
 
 	// Create qtum transaction
 	log.With("method", "sendrawtx").Debugf("Receiver address: %s", receiver)
-	qtumTx, err := api.qcli.PrepareRawTransaction(unspent, addr, receiver, amount)
+	qtumTx, err := api.qcli.BuildUnsignedQtumTx(unspent, addr, receiver, amount)
 	if err != nil {
 		log.With("method", "sendrawtx").Debugf(err.Error())
 		return nil, errors.Wrapf(err, "Error preparing transaction")
@@ -86,14 +102,14 @@ func (api *EthAPI) SendRawTransaction(rawtx string) (*types.Eth_SendRawTransacti
 	}
 
 	// Send qtum raw transaction
-	txid, err := api.qcli.SendRawTransaction(qtumTx, true)
+	qtumHash, err := api.qcli.SendRawTransaction(qtumTx, true)
 	if err != nil {
 		log.With("method", "sendrawtx").Debugf(err.Error())
 		return nil, errors.Wrapf(err, "Error sending transaction")
 	}
-	log.With("method", "sendrawtx").Debugf("Transaction sent with txid: %s", txid.String())
+	log.With("method", "sendrawtx").Debugf("Transaction sent with txid: %s", qtumHash.String())
 
-	return &types.Eth_SendRawTransactionResponse{
-		Hash: "0x" + txid.String(),
+	return &rpctypes.Eth_SendRawTransactionResponse{
+		Hash: decodedTx.Hash().String(),
 	}, nil
 }

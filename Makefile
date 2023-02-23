@@ -38,23 +38,21 @@ help:
         { lastLine = $$0 }' $(MAKEFILE_LIST) | sort -u
 	@printf "\n"
 
+# check if golang is installed
+go/check:
+	@ which go > /dev/null || (echo "golang is not installed" && exit 1)
+	@ if [ ! -f bin/qproxy ]; then make build; fi
 
-
-# check docker is installed
-docker_check: 
-	@docker info > /dev/null 2>&1 || (echo "Docker is not installed" && exit 1)
-
-# check golang is installed
-golang_check:
-	@go version info > /dev/null 2>&1 || (echo "Go not found" && exit 1)
-
-
+docker/check:
+	@ which docker > /dev/null || (echo "docker is not installed" && exit 1)
+	@ docker images | grep -q qtum/qtum || make docker/pull-qtum
+	@ docker ps -a | grep -q ${QTUM_CONTAINER_NAME} || make regtest/start
 
 # pull qtum image
-pull-qtum:
+docker/pull-qtum:
 	@ docker pull qtum/qtum:latest > /dev/null || (echo "error pulling qtum docker image" && exit 1) 
-
-seed-qtum:
+# fund qtum accounts
+docker/seed-qtum:
 	@ printf "\n(2) Importing test accounts...\n\n"
 	docker cp ${shell pwd}/test/fill_user_account.sh ${QTUM_CONTAINER_NAME}:.
 
@@ -63,35 +61,40 @@ seed-qtum:
 	@ printf "\n... Done\n\n"
 
 ## Start Qtum regtest docker container
-start-regtest: pull-qtum 
+regtest/start: pull-qtum 
 	@ printf "\nRunning qtum on docker...\n\n"
 	@ docker run ${QTUM_CONTAINER_FLAGS} qtum/qtum qtumd ${QTUMD_FLAGS} > /dev/null || (echo "error running qtumd on docker" && exit 1)
+	make seed-qtum
 
 
-stop-regtest: #-- stop regtest qtum node
+regtest/stop: 
 	@ printf "\nStopping and removing qtum container...\n\n"
 	@ docker stop $(QTUM_CONTAINER_NAME)
 	@ docker rm $(QTUM_CONTAINER_NAME)
 
-# build qtum contract
-build:
+# deploy qtum contract
+contract/deploy:
 	qtum-cli -regtest -rpcuser=qtum -rpcpassword=testpasswd -rpcport=3889 createcontract 0x$(shell solc --bin --optimize --overwrite -o bin --combined-json bin,abi,metadata contracts/HelloWorld.sol | jq -r '.contracts["contracts/HelloWorld.sol:HelloWorld"].bin')
 
-# run qtum contract
-run:
+# call qtum contract
+contract/call:
 	qtum-cli -regtest -rpcuser=qtum -rpcpassword=testpasswd -rpcport=3889 callcontract $(contract) '["Hello World"]'
 #-- Testing
 test: ## test qtum contract
 	qtum-cli -regtest -rpcuser=qtum -rpcpassword=testpasswd -rpcport=3889 callcontract $(contract) '["Hello World"]' | jq -r '.result.executionResult.output'
 
 ## Run integration tests against a docker qtum regtest node
-integration-test: 
-	@ printf "\nChecking environment for integratioon tests...\n\n"
-	make docker_check
-	make golang_check
-	@ docker ps -a | grep -q ${QTUM_CONTAINER_NAME} || make regtest
-	make seed-qtum
+integration-test: docker/check go/check
 	@ printf "\nRunning tests...\n\n"
+	@ ./test/integration.sh
+## Run unit tests
+unit-test: go/check
+	@ printf "\nRunning tests...\n\n"
+	@ go test -v ./...
+## Build qproxy
+build: ## build qproxy
+	@ printf "\nBuilding qproxy...\n\n"
+	@ go build -o bin/qproxy cmd/root.go
 
 ## clean everything
 clean: stop-regtest

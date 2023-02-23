@@ -23,9 +23,9 @@ type Iqcli interface {
 	// GetAddressInfo returns information about the given qtum address.
 	GetAddressInfo(address string) (*btcjson.GetAddressInfoResult, error)
 
-	// PrepareRawTransaction creates a qtum/btc raw transaction using the given unspent outputs
+	// BuildUnsignedQtumTx creates a qtum/btc raw transaction using the given unspent outputs
 	// to create inputs, and creates resulting outputs
-	PrepareRawTransaction(unspent []btcjson.ListUnspentResult, sender, receiver string, amount float64) (*wire.MsgTx, error)
+	BuildUnsignedQtumTx(unspent []btcjson.ListUnspentResult, sender, receiver string, amount float64) (*wire.MsgTx, error)
 
 	// SendRawTransaction submits the encoded transaction to the server
 	// which will then relay it to the network.
@@ -35,11 +35,16 @@ type Iqcli interface {
 	// signatures for the inputs.
 	//
 	// The transaction is not sent to the network.
-	SignRawTX(tx *wire.MsgTx, unspent []btcjson.ListUnspentResult, w *wallet.QtumWallet) error
+	SignRawTX(tx *wire.MsgTx, unspent []btcjson.ListUnspentResult, wallet wallet.IQtumWallet) error
 
 	// DecodeRawTransaction returns information about a transaction given its serialized bytes.
 	DecodeRawTransaction(serializedTx []byte) (*btcjson.TxRawResult, error)
 
 	// EstimateFee provides an estimated fee in bitcoins per kilobyte.
 	EstimateSmartFee(confTarget int64, mode *btcjson.EstimateSmartFeeMode) (*btcjson.EstimateSmartFeeResult, error)
+
+	// VerifyAddress checks if the address is known to the node's wallet.
+	// If not, it will import the address and rescan the blockchain seeking transactions
+	// related to this address.
+	VerifyAddress(address string) error
 }

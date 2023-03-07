@@ -2,7 +2,9 @@ package qtum
 
 import (
 	"github.com/alejoacosta74/rpc-proxy/pkg/wallet"
+	// "github.com/btcsuite/btcutil"
 	"github.com/qtumproject/btcd/btcjson"
+	"github.com/qtumproject/btcd/btcutil"
 	"github.com/qtumproject/btcd/chaincfg/chainhash"
 	"github.com/qtumproject/btcd/wire"
 )
@@ -17,8 +19,7 @@ type Iqcli interface {
 	ImportAddressRescan(address string, account string, rescan bool) error
 
 	// FindSpendableUTXO returns a list of spendable UTXOs for the given address
-	// with a total amount greater than the given amount
-	FindSpendableUTXO(address string, amount float64) ([]btcjson.ListUnspentResult, error)
+	FindSpendableUTXO(address string) ([]btcjson.ListUnspentResult, error)
 
 	// GetAddressInfo returns information about the given qtum address.
 	GetAddressInfo(address string) (*btcjson.GetAddressInfoResult, error)
@@ -47,4 +48,6 @@ type Iqcli interface {
 	// If not, it will import the address and rescan the blockchain seeking transactions
 	// related to this address.
 	VerifyAddress(address string) error
+
+	GetBalance(account string) (btcutil.Amount, error)
 }

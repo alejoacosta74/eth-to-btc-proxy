@@ -29,8 +29,8 @@ func (q *QtumClient) VerifyAddress(address string) error {
 	if err != nil {
 		return errors.Wrap(err, "Error getting info for address: "+address)
 	}
-	log.With("module", "qtum").Debugf("Address info result: %+v", result)
-	if !result.IsMine {
+	log.With("module", "qtum").Tracef("Address info result: %+v", result)
+	if !result.IsWatchOnly && !result.IsMine {
 		log.With("module", "qtum").Debugf("Address %s not found in wallet. Importing it...", address)
 		err := q.ImportAddressRescan(address, "", true)
 		if err != nil {

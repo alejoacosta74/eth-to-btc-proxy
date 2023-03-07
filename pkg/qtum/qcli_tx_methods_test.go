@@ -4,10 +4,9 @@ import (
 	"bytes"
 	"encoding/hex"
 	"encoding/json"
-	"reflect"
+	"math"
 	"testing"
 
-	"github.com/alejoacosta74/rpc-proxy/pkg/internal/mocks"
 	utils "github.com/alejoacosta74/rpc-proxy/pkg/internal/testutils"
 	"github.com/alejoacosta74/rpc-proxy/pkg/wallet"
 	"github.com/qtumproject/btcd/btcec/v2"
@@ -68,79 +67,6 @@ var cfg = utils.GetNetworkParams()
 var gasSatoshis int = 10000
 var gas float64 = float64(gasSatoshis) / 100000000
 
-func TestFindSpendableUTXO(t *testing.T) {
-
-	err := json.Unmarshal([]byte(listUnspentResponseJSON), &listUnspentResponse)
-	utils.HandleFatalError(t, err)
-
-	// Create qtumd mock with moked responses
-	var responses = map[string]string{
-		"listunspent": listUnspentResponseJSON,
-	}
-	mockQtumd := mocks.NewMockQtumd(responses)
-	defer mockQtumd.Close()
-
-	// Create qtum client
-	qcli, err := NewQtumClient(mockQtumd.URL, "qtum", "qtumpass", cfg.Net.String())
-	utils.HandleFatalError(t, err)
-
-	// Define and run tests
-	tests := []struct {
-		name    string
-		address string
-		amount  float64
-		want    []btcjson.ListUnspentResult
-		wantErr bool
-	}{
-		{
-			name:    "Test 1",
-			address: "qUbxboqjBRp96j3La8D1RYkyqx5uQbJPoW",
-			amount:  20000,
-			want:    listUnspentResponse[0:1],
-			wantErr: false,
-		},
-		{
-			name:    "Test 2",
-			address: "qUbxboqjBRp96j3La8D1RYkyqx5uQbJPoW",
-			amount:  40000,
-			want:    listUnspentResponse[0:2],
-			wantErr: false,
-		},
-		{
-			name:    "Test 3",
-			address: "qUbxboqjBRp96j3La8D1RYkyqx5uQbJPoW",
-			amount:  40001,
-			want:    listUnspentResponse[0:3],
-			wantErr: false,
-		},
-		{
-			name:    "Test 4",
-			address: "qUbxboqjBRp96j3La8D1RYkyqx5uQbJPoW",
-			amount:  80001,
-			want:    listUnspentResponse[0:3],
-			wantErr: true,
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			got, err := qcli.FindSpendableUTXO(tt.address, tt.amount)
-			if err != nil {
-				if !tt.wantErr {
-					t.Errorf("qcli.FindSpendableUTXO() error = %v, wantErr %v", err, tt.wantErr)
-					return
-				} else {
-					return
-				}
-			}
-			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("QtumClient.FindSpendableUTXO() = \n%v\n ====>want \n%v\n", got, tt.want)
-			}
-		})
-	}
-
-}
-
 func TestBuildUnsignedQtumTx(t *testing.T) {
 	err := json.Unmarshal([]byte(listUnspentResponseJSON), &listUnspentResponse)
 	utils.HandleFatalError(t, err)
@@ -158,66 +84,66 @@ func TestBuildUnsignedQtumTx(t *testing.T) {
 
 	// Define and run tests
 	tests := []struct {
-		name        string
-		unspent     []btcjson.ListUnspentResult
-		amount      float64
-		wantChange  float64
-		wantOutputs int
-		wantErr     bool
+		name         string
+		unspent      []btcjson.ListUnspentResult
+		outputAmount float64
+		wantChange   float64
+		wantOutputs  int
+		wantErr      bool
 	}{
 		{
-			name:        "test1: one input, amount < input.amount",
-			unspent:     unspent1,
-			amount:      10000.1,
-			wantChange:  9999.9 - gas,
-			wantOutputs: 2,
-			wantErr:     false,
+			name:         "test1: one input, amount < input.amount",
+			unspent:      unspent1,
+			outputAmount: 10000.1,
+			wantChange:   9999.9 - gas,
+			wantOutputs:  2,
+			wantErr:      false,
 		},
 		{
-			name:        "test2: one input, amount = input.amount-gas",
-			unspent:     unspent1,
-			amount:      20000.0000000 - gas,
-			wantChange:  0,
-			wantOutputs: 1,
-			wantErr:     false,
+			name:         "test2: one input, amount = input.amount-gas",
+			unspent:      unspent1,
+			outputAmount: 20000.0000000 - gas,
+			wantChange:   0,
+			wantOutputs:  1,
+			wantErr:      false,
 		},
 		{
-			name:        "test3: two inputs, amount < inputs.amount",
-			unspent:     unspent3,
-			amount:      30000.3,
-			wantChange:  9999.7 - gas,
-			wantOutputs: 2,
-			wantErr:     false,
+			name:         "test3: two inputs, amount < inputs.amount",
+			unspent:      unspent3,
+			outputAmount: 30000.3,
+			wantChange:   9999.7 - gas,
+			wantOutputs:  2,
+			wantErr:      false,
 		},
 		{
-			name:        "test4: two inputs, amount = inputs.amount-gas",
-			unspent:     unspent3,
-			amount:      40000 - gas,
-			wantChange:  0,
-			wantOutputs: 1,
-			wantErr:     false,
+			name:         "test4: two inputs, amount = inputs.amount-gas",
+			unspent:      unspent3,
+			outputAmount: 40000 - gas,
+			wantChange:   0,
+			wantOutputs:  1,
+			wantErr:      false,
 		},
 		{
-			name:        "test5: two inputs, amount with decimals",
-			unspent:     unspent3,
-			amount:      30000.8,
-			wantChange:  9999.2 - gas,
-			wantOutputs: 2,
-			wantErr:     false,
+			name:         "test5: two inputs, amount with decimals",
+			unspent:      unspent3,
+			outputAmount: 30000.8,
+			wantChange:   9999.2 - gas,
+			wantOutputs:  2,
+			wantErr:      false,
 		},
 		{
-			name:        "test6: two inputs, amount == inputs.amount",
-			unspent:     unspent3,
-			amount:      40000.0000000,
-			wantChange:  0,
-			wantOutputs: 1,
-			wantErr:     true,
+			name:         "test6: two inputs, amount == inputs.amount",
+			unspent:      unspent3,
+			outputAmount: 40000.0000000,
+			wantChange:   0,
+			wantOutputs:  1,
+			wantErr:      true,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			unsignedTx, err := qcli.BuildUnsignedQtumTx(tt.unspent, SENDER_ADDR, RECEIVER_ADDR, tt.amount)
+			unsignedTx, err := qcli.BuildUnsignedQtumTx(tt.unspent, SENDER_ADDR, RECEIVER_ADDR, tt.outputAmount)
 			// check error
 			if err != nil {
 				if tt.wantErr {
@@ -241,8 +167,8 @@ func TestBuildUnsignedQtumTx(t *testing.T) {
 			// check receiver amount is correct in tx output
 			receiverSatoshis := unsignedTx.TxOut[0].Value
 			receiverAmount := decimal.NewFromFloatWithExponent(float64(receiverSatoshis)/Qtum, PrecisionExp)
-			if !receiverAmount.Equals(decimal.NewFromFloatWithExponent(tt.amount, PrecisionExp)) {
-				t.Errorf("receiver amount is not correct, want %v, got %v", tt.amount, receiverAmount)
+			if !receiverAmount.Equals(decimal.NewFromFloatWithExponent(tt.outputAmount, PrecisionExp)) {
+				t.Errorf("receiver amount is not correct, want %v, got %v", tt.outputAmount, receiverAmount)
 			}
 
 			// check number of outputs is correct
@@ -251,14 +177,20 @@ func TestBuildUnsignedQtumTx(t *testing.T) {
 			// check change amount is correct
 			if tt.wantOutputs > 1 {
 				changeSatoshis := unsignedTx.TxOut[1].Value
-				change := decimal.NewFromFloatWithExponent(float64(changeSatoshis)/Qtum, PrecisionExp)
-				if !change.Equals(decimal.NewFromFloatWithExponent(tt.wantChange, PrecisionExp)) {
-					t.Errorf("change amount is not correct, want %v, got %v", tt.wantChange, change)
+				changeQtum := float64(changeSatoshis) / Qtum
+				if !utils.AreEqual(changeQtum, tt.wantChange) {
+					t.Errorf("change amount is not correct, want %v, got %v", tt.wantChange, changeQtum)
 				}
+
 			}
 		})
 	}
 
+}
+
+func round(num float64, decimalPlaces int) float64 {
+	shift := math.Pow(10, float64(decimalPlaces))
+	return math.Round(num*shift) / shift
 }
 
 func TestSignRawTx(t *testing.T) {

@@ -34,10 +34,6 @@ var tests = []struct {
 }
 
 func TestVerifyTxSignature(t *testing.T) {
-	// privKey, _ := crypto.HexToECDSA(privKeyHex)
-	// address := crypto.PubkeyToAddress(privKey.PublicKey)
-	// fmt.Printf("public key: %x\n", crypto.FromECDSAPub(&privKey.PublicKey))
-	// fmt.Printf("address: %s\n", address.Hex())
 	tx := newEthereumTx()
 
 	for _, tt := range tests {

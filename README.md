@@ -1,13 +1,13 @@
 # eth to qtum signature conversion proxy
 
-`qtumproxy` is a proxy server that converts a signed Ethereum transaction to a Qtum (Bitcoin) signed transaction and sends it to the Qtum node for broadcasting.
+`qproxy` is a proxy server that converts a signed Ethereum transaction to a Qtum (Bitcoin) signed transaction and sends it to the Qtum node for broadcasting.
 
 ## How it works
-The proxy runs a JSON RPC server that implements the method `eth_senRawTransaction` (as defined in the Ethereum JSON RPC API)
+The proxy runs a JSON RPC server that implements the method `eth_sendRawTransaction` (as defined in the Ethereum JSON RPC API)
 
 Whenever a Ethereum raw transaction is received, the tx is decoded and the signature is verified.
 
-Once the signature is verified, a new utxo based transaction is assembled with the same values from the original Ethereum transaction that are relevant to the Qtum blockchain, such as `amount`, `data`, `to`, `gas`, etc.
+Next, a new utxo based transaction is assembled with the same values from the original Ethereum transaction that are relevant to the Qtum blockchain, such as `amount`, `data`, `to`, `gas`, etc.
 
 Finally the new utxo based transaction is signed and broadcasted to the Qtum network, and the tx hash is returned to the original caller as part of the `eth_senRawTransaction` result.
 
@@ -48,16 +48,16 @@ curl -X -d '{"jsonrpc":"2.0","method":"eth_sendRawTransaction","params":[" "0xd4
 
 ## Features
 - A reverse-proxy is available at endpoint `/proxy` that can be used to send requests to an ethereum node (like Ganache) and log both JSON RPC request and response (usefull for debugging and testing)
-- Command line configuration can be passed as flags, environment vars or within a `.qtumproxy.env` file
+- Command line configuration can be passed as flags, environment vars or within a `.qproxy.env` file
 - JSON RPC service implementation based on *go-ethereum* rpc module.
 - QTUM rpc client implementation based on *btcd* bitcoin rpc client
 - Support for different log levels (info, trace, debug)
 
 ## Run tests
 
-Unit tests can be run with `make unit-test` (TO-DO)
+Unit tests can be run with `make unit-test`
 
-Integration tests can be run with `make integration-test` (TO-DO)
+Integration tests can be run with `make integration-test` 
 
 ## TODO
 

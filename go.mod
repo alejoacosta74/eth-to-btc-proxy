@@ -39,10 +39,7 @@ require (
 
 require github.com/qtumproject/btcd/chaincfg/chainhash v1.0.1-beta.qtum
 
-require (
-	github.com/alejoacosta74/gologger v0.0.3
-	github.com/google/go-cmp v0.5.9
-)
+require github.com/alejoacosta74/gologger v0.0.4
 
 require (
 	github.com/StackExchange/wmi v0.0.0-20180116203802-5d049714c4a6 // indirect
@@ -73,9 +70,9 @@ require (
 	github.com/deckarep/golang-set v1.8.0 // indirect
 	github.com/ethereum/go-ethereum v1.10.26
 	github.com/go-stack/stack v1.8.0 // indirect
-	github.com/qtumproject/btcd/btcec/v2 v2.0.1-beta.qtum // indirect
+	github.com/qtumproject/btcd/btcec/v2 v2.0.1-beta.qtum
 	github.com/qtumproject/btcd/btcutil v1.0.1-beta.qtum
-	github.com/shopspring/decimal v1.3.1 // indirect
+	github.com/shopspring/decimal v1.3.1
 	github.com/spf13/viper v1.14.0
 
 )

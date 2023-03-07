@@ -17,7 +17,7 @@ import (
 
 const (
 	// DefaultGasPrice is the default gas price used for transactions
-	DefaultGasPrice = 10000
+	DefaultGasPrice = 100000
 	// Qtum is the number of satoshis in 1 Qtum
 	Qtum = 100000000
 	// Precision digits to use for decimal operations with Qtum amounts
@@ -85,16 +85,15 @@ func (q *QtumClient) GetTransactionIndex(txHash string, block *btcjson.GetBlockV
 }
 
 // FindSpendableUTXO returns a list of spendable UTXOs for the given address
-// with a total amount equal or greater than the given amount
 //
 // Params:
 //   - addr: the address to search for UTXOs in base58 format
-//   - amount: the amount to search for in Qtum
-func (q *QtumClient) FindSpendableUTXO(addr string, amount float64) ([]btcjson.ListUnspentResult, error) {
+func (q *QtumClient) FindSpendableUTXO(addr string) ([]btcjson.ListUnspentResult, error) {
 
-	log.With("module", "qtum").Tracef("Searching unspent utxos for address %s with a total amount of %v: ", addr, amount)
+	log.With("module", "qtum").Tracef("Searching unspent utxos for address %s: ", addr)
 	address, err := btcutil.DecodeAddress(addr, q.cfg)
 	if err != nil {
+		log.With("module", "qtum").Tracef("Error decoding address: %s, error: %+v", addr, err)
 		return nil, errors.Wrapf(err, "Error decoding address: %s", addr)
 	}
 
@@ -103,21 +102,7 @@ func (q *QtumClient) FindSpendableUTXO(addr string, amount float64) ([]btcjson.L
 	if err != nil {
 		return nil, errors.Wrapf(err, "Error listing unspent utxos for address: %s", address.EncodeAddress())
 	}
-	var total float64
-	// TODO: sort by amount?
-	for i, utxo := range unspent {
-		if utxo.Confirmations < 6 {
-			continue
-		}
-		total += utxo.Amount
-		// TODO: consider gas fee here
-		if total >= amount {
-			log.With("module", "qtum").Tracef("Unspent utxos returned: %+v", unspent)
-			return unspent[:i+1], nil
-		}
-	}
-	log.With("module", "qtum").Tracef("not enough UTXOs found: %+v", unspent)
-	return unspent, errors.New("not enough UTXOs found")
+	return unspent, nil
 }
 
 // BuildUnsignedQtumTx creates a qtum/btc raw transaction using the given parameters
@@ -222,17 +207,70 @@ func (q *QtumClient) SignRawTX(tx *wire.MsgTx, unspent []btcjson.ListUnspentResu
 			return errors.Wrapf(err, "Error decoding scriptPubKey: %s", unspent[i].ScriptPubKey)
 		}
 
-		sigScript, err := txscript.SignatureScript(
-			tx,
-			i,
-			scriptPubKey,
-			txscript.SigHashAll,
-			privKey,
-			true,
-		)
-		if err != nil {
-			return errors.Wrapf(err, "Error signing input %d", i)
+		var sigScript []byte
+		// check what type of scriptPubKey it is
+		pKscriptType := txscript.GetScriptClass(scriptPubKey)
+		switch pKscriptType {
+		case txscript.PubKeyHashTy:
+			log.With("module", "qtum").Tracef("scriptPubKey is P2PKH")
+			sigScript, err = txscript.SignatureScript(
+				tx,
+				i,
+				scriptPubKey,
+				txscript.SigHashAll,
+				privKey,
+				true,
+			)
+			if err != nil {
+				return errors.Wrapf(err, "error signing input type P2PKH with index %d", i)
+			}
+		case txscript.ScriptHashTy:
+			// create scriptSig for P2SH
+			log.With("module", "qtum").Tracef("scriptPubKey is P2SH")
+			return errors.New("P2SH is not supported")
+		case txscript.WitnessV0PubKeyHashTy:
+			log.With("module", "qtum").Tracef("scriptPubKey is P2WPKH")
+			return errors.New("P2WPKH is not supported")
+		case txscript.WitnessV0ScriptHashTy:
+			log.With("module", "qtum").Tracef("scriptPubKey is P2WSH")
+			return errors.New("P2WSH is not supported")
+		case txscript.PubKeyTy:
+			log.With("module", "qtum").Tracef("scriptPubKey is P2PK")
+			// create scriptSig for P2PK
+			// sigHash, err := txscript.CalcSignatureHash(scriptPubKey, txscript.SigHashAll, tx, i)
+			// if err != nil {
+			// 	return errors.Wrapf(err, "Error calculating signature hash for input %d", i)
+			// }
+			signature, err := txscript.RawTxInSignature(tx, i, scriptPubKey, txscript.SigHashAll, privKey)
+			if err != nil {
+				return errors.Wrapf(err, "Error creating signature for input %d", i)
+			}
+			sigScript, err = txscript.NewScriptBuilder().AddData(signature).Script()
+			if err != nil {
+				return errors.Wrapf(err, "Error creating scriptSig for input %d", i)
+			}
+
+		case txscript.WitnessUnknownTy:
+			// create scriptSig for P2PKH
+			return errors.New("WitnessUnknown type is not supported")
+		case txscript.NonStandardTy:
+			// create scriptSig for non-standard
+			log.With("module", "qtum").Tracef("scriptPubKey is non-standard")
+			return errors.New("non-standard type is not supported")
 		}
+		/*
+			sigScript, err := txscript.SignatureScript(
+				tx,
+				i,
+				scriptPubKey,
+				txscript.SigHashAll,
+				privKey,
+				true,
+			)
+			if err != nil {
+				return errors.Wrapf(err, "Error signing input %d", i)
+			}
+		*/
 
 		txin.SignatureScript = sigScript
 	}

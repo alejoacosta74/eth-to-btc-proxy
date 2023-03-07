@@ -79,7 +79,7 @@ func (q *MockQcli) VerifyAddress(address string) error {
 	return nil
 }
 
-func (q *MockQcli) FindSpendableUTXO(address string, amount float64) ([]btcjson.ListUnspentResult, error) {
+func (q *MockQcli) FindSpendableUTXO(address string) ([]btcjson.ListUnspentResult, error) {
 	return q.FindSpendableUTXOResult, nil
 }
 
@@ -95,10 +95,14 @@ func (q *MockQcli) SendRawTransaction(tx *wire.MsgTx, allowHighFees bool) (*chai
 	return q.SendRawTransactionResult, nil
 }
 
+func (q *MockQcli) GetBalance(account string) (btcutil.Amount, error) {
+	return 0, nil
+}
+
 // Mockqcli default responses
 
 // Default response for FindSpendableUTXO()
-var listUnspentResponseJSON string = `[
+var DefaultListUnspentResponseJSON string = `[
 	{
 	  "txid": "bbe399eebaf12849cb306af8218460061223baa8cb76216358dd68429c921500",
 	  "vout": 0,
@@ -164,7 +168,7 @@ var hashHex string = "1dbf40139b6038d5f19b43c592b33a5ad3fe55494e6407712de55cff6b
 func (q *MockQcli) loadDefaultResponses() {
 
 	// Set default response for FindSpendableUTXO()
-	err := json.Unmarshal([]byte(listUnspentResponseJSON), &listUnspentResponse)
+	err := json.Unmarshal([]byte(DefaultListUnspentResponseJSON), &listUnspentResponse)
 	if err != nil {
 		fmt.Printf("Error unmarshalling unspent response: %v\n", err)
 		panic(err)

@@ -5,6 +5,7 @@ package cmd
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"os/signal"
 	"syscall"
@@ -15,17 +16,17 @@ import (
 	"github.com/alejoacosta74/rpc-proxy/pkg/log"
 	"github.com/alejoacosta74/rpc-proxy/pkg/qtum"
 	"github.com/alejoacosta74/rpc-proxy/pkg/server"
+	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
 
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
-	Use:   "qtumproxy",
+	Use:   "qproxy",
 	Short: "A JSON RPC proxy that converts a eth tx to qtum tx ",
 	Long: `Proxy server that converts an Ethereum signed transaction to a 
 Qtum (Bitcoin) signed transaction and sends it for broadcasting to the Qtum node.
-
 `,
 	Run:               runQtumProxy,
 	Args:              cobra.MaximumNArgs(0),
@@ -54,7 +55,6 @@ var (
 
 func init() {
 
-	rootCmd.Use = "qtumproxy --qtumrpc=127.0.0.1:3889 --user=qtum --pass=qtum --loglevel=debug"
 	rootCmd.Flags().StringVarP(&address, "address", "a", ":8080", "Address to listen on")
 	rootCmd.PersistentFlags().StringVarP(&backendUrl, "backend", "b", "http://127.0.0.1:7545", "Backend URL to proxy to")
 	rootCmd.PersistentFlags().StringVarP(&qtumRpcEndPoint, "qtumrpc", "q", "127.0.0.1:3889", "Qtum RPC endpoint")
@@ -62,7 +62,7 @@ func init() {
 	rootCmd.PersistentFlags().StringVarP(&qtumPass, "pass", "p", "qtum", "Qtum password")
 	rootCmd.PersistentFlags().StringVarP(&network, "network", "n", "regtest", "Qtum network")
 
-	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.qtumproxy.env)")
+	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.qproxy.env)")
 	rootCmd.PersistentFlags().StringVarP(&logLevel, "loglevel", "l", "", "log level (trace, debug, info, warn, error, fatal, panic")
 
 	cobra.MarkFlagFilename(rootCmd.PersistentFlags(), "config")
@@ -73,7 +73,11 @@ func init() {
 }
 
 func runPreRunE(cmd *cobra.Command, args []string) error {
-	err := setLogger()
+	err := loadConfig()
+	if err != nil {
+		return err
+	}
+	err = setLogger()
 	if err != nil {
 		return err
 	}
@@ -156,5 +160,34 @@ func setLogger() error {
 		return err
 	}
 	log.SetLogger(logger)
+	return nil
+}
+
+// loadConfig loads the ethcli configuration from a
+// file or from env variables
+func loadConfig() error {
+	if cfgFile != "" {
+		viper.SetConfigFile(cfgFile)
+		viper.SetConfigType("yaml")
+
+		if err := viper.ReadInConfig(); err != nil {
+			return fmt.Errorf("failed to read config file - %s", err)
+		}
+	} else {
+		// Default location for config file is $HOME/.ethcli
+		homeDir, err := os.UserHomeDir()
+		if err != nil {
+			return errors.Wrap(err, "error getting user home directory")
+		} else {
+			configFile := homeDir + "/.ethcli/config.yaml"
+			viper.SetConfigFile(configFile)
+
+			if err := viper.ReadInConfig(); err != nil {
+				return errors.Wrap(err, "failed to read config file")
+			}
+		}
+	}
+
+	viper.AutomaticEnv()
 	return nil
 }

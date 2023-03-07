@@ -1,4 +1,4 @@
-# eth to qtum signature conversion proxy
+# `qproxy`: An eth to qtum signature conversion proxy
 
 `qproxy` is a proxy server that converts a signed Ethereum transaction to a Qtum (Bitcoin) signed transaction and sends it to the Qtum node for broadcasting.
 

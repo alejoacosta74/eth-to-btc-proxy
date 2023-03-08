@@ -1,6 +1,6 @@
 package rpc
 
-import "github.com/alejoacosta74/rpc-proxy/pkg/log"
+import "github.com/alejoacosta74/qproxy/pkg/log"
 
 // GasPrice implements the eth_GasPrice JSON-RPC call.
 //

@@ -7,8 +7,8 @@ import (
 	"math"
 	"testing"
 
-	utils "github.com/alejoacosta74/rpc-proxy/pkg/internal/testutils"
-	"github.com/alejoacosta74/rpc-proxy/pkg/wallet"
+	utils "github.com/alejoacosta74/qproxy/pkg/internal/testutils"
+	"github.com/alejoacosta74/qproxy/pkg/wallet"
 	"github.com/qtumproject/btcd/btcec/v2"
 	"github.com/qtumproject/btcd/btcjson"
 	"github.com/qtumproject/btcd/txscript"

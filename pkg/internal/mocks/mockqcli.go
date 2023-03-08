@@ -7,7 +7,7 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/alejoacosta74/rpc-proxy/pkg/wallet"
+	"github.com/alejoacosta74/qproxy/pkg/wallet"
 	"github.com/qtumproject/btcd/btcjson"
 	"github.com/qtumproject/btcd/btcutil"
 	"github.com/qtumproject/btcd/chaincfg/chainhash"

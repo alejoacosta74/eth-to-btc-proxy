@@ -3,9 +3,9 @@ package rpc
 import (
 	"fmt"
 
-	"github.com/alejoacosta74/rpc-proxy/pkg/log"
-	rpctypes "github.com/alejoacosta74/rpc-proxy/pkg/rpc/types"
-	"github.com/alejoacosta74/rpc-proxy/pkg/wallet"
+	"github.com/alejoacosta74/qproxy/pkg/log"
+	rpctypes "github.com/alejoacosta74/qproxy/pkg/rpc/types"
+	"github.com/alejoacosta74/qproxy/pkg/wallet"
 	"github.com/qtumproject/btcd/btcjson"
 
 	"github.com/ethereum/go-ethereum/common/hexutil"

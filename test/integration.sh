@@ -22,6 +22,8 @@ cleanup() {
 	fi
 	# remove ethcli repo
 	rm -rf $ETHCLI_DIR
+	# remove qtum regtest data
+	sudo rm -rf "$QTUM_CONTAINER_NAME"
 
 	QPROXY_PID=$(ps aux | grep qproxy | grep -v grep | awk '{print $2}')
 	if [ -n "$QPROXY_PID" ]; then
@@ -64,10 +66,9 @@ QTUMD_FLAGS="qtumd -regtest \
 QTUM_CONTAINER_FLAGS="-d --name $QTUM_CONTAINER_NAME \
 -v $(pwd)/$QTUM_CONTAINER_NAME:/root/.qtum \
 -p 3889:3889"
-# Vars for qtum proxy
+
+# vars for qproxy
 QTUM_CONTAINER_URL="http://localhost:3889"
-
-
 
 # vars for ethcli
 ETHCLI_REPO="https://github.com/alejoacosta74/ethcli.git"
@@ -113,19 +114,17 @@ run_qtumd() {
 		fi
 		# start qtumd docker container
 		echo "Running qtumd docker container..."
-		docker run $QTUM_CONTAINER_FLAGS $QTUM_IMAGE $QTUMD_FLAGS
+		docker run $QTUM_CONTAINER_FLAGS $QTUM_IMAGE $QTUMD_FLAGS > /dev/null
 		if [ $? -ne 0 ]; then
 			echo "Error: could not run qtumd docker container"
 			exit 1
 		fi
 		# seed regtest addresses with QTUM
-		echo "Seeding regtest addresses with QTUM..."
 		sleep 5
-		docker cp test/fill_user_account.sh ${QTUM_CONTAINER_NAME}:.
-		docker exec ${QTUM_CONTAINER_NAME} /bin/sh -c ./fill_user_account.sh &
-		# set +x
+		echo "Seeding regtest addresses with QTUM..."
+		docker cp fill_user_account.sh "$QTUM_CONTAINER_NAME":.
+		(docker exec "$QTUM_CONTAINER_NAME" /bin/sh -c ./fill_user_account.sh ) > /dev/null &
 		spinner "seeding"
-		# set -x
 		echo "...done seeding regtest addresses with QTUM"
 	fi
 }
@@ -137,16 +136,18 @@ run_qproxy() {
 		kill -9 "$(ps aux | grep qproxy | grep -v grep | awk '{print $2}')"
 	fi
 	set -eE
-	make build
+	cd ..
+	make build > /dev/null
 	echo "Starting qproxy..."
 	./bin/qproxy --qtumrpc "$QTUM_CONTAINER_URL" --user $USER --pass $PASSWORD &
+	cd test
 	sleep 5
 }
 
-hex2dec() {
-	local dec=$(echo "ibase=16; $(echo "$1" | tr '[:lower:]' '[:upper:]')" | bc)
-	echo "$dec"
-}
+# hex2dec() {
+# 	local dec=$(echo "ibase=16; $(echo "$1" | tr '[:lower:]' '[:upper:]')" | bc)
+# 	echo "$dec"
+# }
 
 compare_big_ints() {
 	int1="$1"
@@ -183,15 +184,15 @@ test_send() {
 	echo "Running integration test for eth_sendRawTransaction..."
 	local AMOUNT=25000000000000000 # 0.025 QTUM = 0.025 ETH in wei
 	local ADDRESS="0x7cB57B5A97eAbe94205C07890BE4c1aD31E486A8" # qtum address qUvnMQ4KUEM3ZqAT4AwKUB513pSgYyeoF7
-	local balance="$($ETHCLI getbalance $ADDRESS -n "$ETH_NODE_URL" | grep -o '[0-9]\+')"
-	# local balance=$(hex2dec $balance_hex)
+	local balance="$($ETHCLI getbalance $ADDRESS -n "$ETH_NODE_URL" | grep -o '[0-9]\+')" 
+
 	echo "...initial balance for 0x$ADDRESS (receiver): $balance wei"
 
 	$ETHCLI importkey $KEY -n "$ETH_NODE_URL" > /dev/null
 	echo "... sending $AMOUNT wei to $ADDRESS"
 	$ETHCLI send $AMOUNT $ADDRESS -k $KEY -n "$ETH_NODE_URL" > /dev/null
 	local new_balance="$($ETHCLI getbalance $ADDRESS -n "$ETH_NODE_URL" | grep -o '[0-9]\+')"
-	# local new_balance=$(hex2dec $new_balance_hex)
+
 
 	echo "...new balance for 0x$ADDRESS (receiver): $new_balance wei"
 
@@ -222,7 +223,6 @@ test_send() {
 # 5. main
 main () {
 	SUCCESS=true
-
 	clone_eth_client
 	run_qtumd
 	run_qproxy

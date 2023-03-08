@@ -1,6 +1,6 @@
 package rpc
 
-import "github.com/alejoacosta74/rpc-proxy/pkg/log"
+import "github.com/alejoacosta74/qproxy/pkg/log"
 
 // Version implements the net_version JSON-RPC call.
 //

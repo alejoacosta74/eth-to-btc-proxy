@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"math/big"
 
-	// local "github.com/alejoacosta74/rpc-proxy/pkg/types"
+	// local "github.com/alejoacosta74/qproxy/pkg/types"
 	"github.com/ethereum/go-ethereum/core/types"
 )
 

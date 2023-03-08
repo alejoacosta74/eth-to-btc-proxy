@@ -5,7 +5,7 @@ import (
 	"os"
 
 	"github.com/alejoacosta74/gologger"
-	"github.com/alejoacosta74/rpc-proxy/pkg/log"
+	"github.com/alejoacosta74/qproxy/pkg/log"
 
 	"github.com/qtumproject/btcd/chaincfg"
 )

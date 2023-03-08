@@ -1,7 +1,7 @@
 package rpc
 
 import (
-	"github.com/alejoacosta74/rpc-proxy/pkg/log"
+	"github.com/alejoacosta74/qproxy/pkg/log"
 )
 
 // GetTransactionCount implements the eth_getTransactionCount JSON-RPC call.

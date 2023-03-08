@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/alejoacosta74/rpc-proxy/pkg/internal/mocks"
+	"github.com/alejoacosta74/qproxy/pkg/internal/mocks"
 	"github.com/qtumproject/btcd/btcjson"
 )
 

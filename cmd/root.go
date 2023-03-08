@@ -13,9 +13,9 @@ import (
 
 	"github.com/alejoacosta74/gologger"
 
-	"github.com/alejoacosta74/rpc-proxy/pkg/log"
-	"github.com/alejoacosta74/rpc-proxy/pkg/qtum"
-	"github.com/alejoacosta74/rpc-proxy/pkg/server"
+	"github.com/alejoacosta74/qproxy/pkg/log"
+	"github.com/alejoacosta74/qproxy/pkg/qtum"
+	"github.com/alejoacosta74/qproxy/pkg/server"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -62,7 +62,7 @@ func init() {
 	rootCmd.PersistentFlags().StringVarP(&qtumPass, "pass", "p", "qtum", "Qtum password")
 	rootCmd.PersistentFlags().StringVarP(&network, "network", "n", "regtest", "Qtum network")
 
-	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.qproxy.env)")
+	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.qproxy/config.yaml)")
 	rootCmd.PersistentFlags().StringVarP(&logLevel, "loglevel", "l", "", "log level (trace, debug, info, warn, error, fatal, panic")
 
 	cobra.MarkFlagFilename(rootCmd.PersistentFlags(), "config")
@@ -174,16 +174,19 @@ func loadConfig() error {
 			return fmt.Errorf("failed to read config file - %s", err)
 		}
 	} else {
-		// Default location for config file is $HOME/.ethcli
+		// Default location for config file is $HOME/.qproxy
 		homeDir, err := os.UserHomeDir()
 		if err != nil {
 			return errors.Wrap(err, "error getting user home directory")
 		} else {
-			configFile := homeDir + "/.ethcli/config.yaml"
-			viper.SetConfigFile(configFile)
+			configFile := homeDir + "/.qproxy/config.yaml"
 
+			if _, err := os.Stat(configFile); os.IsNotExist(err) {
+				return nil
+			}
+			viper.SetConfigFile(configFile)
 			if err := viper.ReadInConfig(); err != nil {
-				return errors.Wrap(err, "failed to read config file")
+				return errors.Wrap(err, "failed to read config file: "+configFile)
 			}
 		}
 	}

@@ -8,9 +8,9 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/alejoacosta74/rpc-proxy/pkg/internal/mocks"
-	utils "github.com/alejoacosta74/rpc-proxy/pkg/internal/testutils"
-	"github.com/alejoacosta74/rpc-proxy/pkg/wallet"
+	"github.com/alejoacosta74/qproxy/pkg/internal/mocks"
+	utils "github.com/alejoacosta74/qproxy/pkg/internal/testutils"
+	"github.com/alejoacosta74/qproxy/pkg/wallet"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/qtumproject/btcd/btcjson"
 )

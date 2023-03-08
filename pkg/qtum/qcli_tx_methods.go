@@ -4,8 +4,8 @@ import (
 	"encoding/hex"
 	"fmt"
 
-	"github.com/alejoacosta74/rpc-proxy/pkg/log"
-	"github.com/alejoacosta74/rpc-proxy/pkg/wallet"
+	"github.com/alejoacosta74/qproxy/pkg/log"
+	"github.com/alejoacosta74/qproxy/pkg/wallet"
 	"github.com/pkg/errors"
 	"github.com/qtumproject/btcd/btcjson"
 	"github.com/qtumproject/btcd/btcutil"

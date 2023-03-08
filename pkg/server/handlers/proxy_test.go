@@ -10,7 +10,7 @@ import (
 	"sync"
 	"testing"
 
-	_ "github.com/alejoacosta74/rpc-proxy/pkg/internal/testutils"
+	_ "github.com/alejoacosta74/qproxy/pkg/internal/testutils"
 	"github.com/stretchr/testify/assert"
 )
 

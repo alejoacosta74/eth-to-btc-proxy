@@ -1,7 +1,7 @@
 package qtum
 
 import (
-	"github.com/alejoacosta74/rpc-proxy/pkg/wallet"
+	"github.com/alejoacosta74/qproxy/pkg/wallet"
 	// "github.com/btcsuite/btcutil"
 	"github.com/qtumproject/btcd/btcjson"
 	"github.com/qtumproject/btcd/btcutil"

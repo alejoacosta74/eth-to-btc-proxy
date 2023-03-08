@@ -5,8 +5,8 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	utils "github.com/alejoacosta74/rpc-proxy/pkg/internal/testutils"
-	"github.com/alejoacosta74/rpc-proxy/pkg/wallet"
+	utils "github.com/alejoacosta74/qproxy/pkg/internal/testutils"
+	"github.com/alejoacosta74/qproxy/pkg/wallet"
 	"github.com/stretchr/testify/assert"
 )
 

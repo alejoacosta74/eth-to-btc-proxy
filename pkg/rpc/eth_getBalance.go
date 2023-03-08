@@ -1,7 +1,7 @@
 package rpc
 
 import (
-	"github.com/alejoacosta74/rpc-proxy/pkg/log"
+	"github.com/alejoacosta74/qproxy/pkg/log"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/pkg/errors"
 	qcommon "github.com/qtumproject/qtool/lib/common"

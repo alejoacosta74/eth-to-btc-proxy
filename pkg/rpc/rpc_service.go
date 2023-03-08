@@ -5,8 +5,8 @@ import (
 	"context"
 	"encoding/json"
 
-	"github.com/alejoacosta74/rpc-proxy/pkg/log"
-	"github.com/alejoacosta74/rpc-proxy/pkg/qtum"
+	"github.com/alejoacosta74/qproxy/pkg/log"
+	"github.com/alejoacosta74/qproxy/pkg/qtum"
 	"github.com/ethereum/go-ethereum/rpc"
 	"github.com/pkg/errors"
 	"github.com/qtumproject/btcd/chaincfg"

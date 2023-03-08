@@ -6,7 +6,7 @@ import (
 	"os"
 	"strings"
 
-	"github.com/alejoacosta74/rpc-proxy/pkg/log"
+	"github.com/alejoacosta74/qproxy/pkg/log"
 	"github.com/btcsuite/btclog"
 	"github.com/pkg/errors"
 	"github.com/qtumproject/btcd/chaincfg"

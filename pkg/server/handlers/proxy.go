@@ -11,7 +11,7 @@ import (
 	"net/url"
 	"strings"
 
-	"github.com/alejoacosta74/rpc-proxy/pkg/log"
+	"github.com/alejoacosta74/qproxy/pkg/log"
 	"github.com/pkg/errors"
 	// log "github.com/alejoacosta74/gologger"
 )

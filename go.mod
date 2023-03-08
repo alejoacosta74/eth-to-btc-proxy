@@ -1,4 +1,4 @@
-module github.com/alejoacosta74/rpc-proxy
+module github.com/alejoacosta74/qproxy
 
 go 1.19
 

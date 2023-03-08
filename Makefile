@@ -26,7 +26,7 @@ go/check:
 ## Run integration tests against a docker qtum regtest node
 integration-test: go/check
 	@ printf "\nRunning integration tests...\n\n"
-	@ ./test/integration.sh
+	@ cd test ; ./integration.sh ; cd .. || (echo "integration tests failed" && exit 1)
 ## Run unit tests
 unit-test: go/check
 	@ printf "\nRunning tests...\n\n"
@@ -45,6 +45,6 @@ run: go/check ## run qproxy
 clean: 
 	@ printf "\nRemoving files and folders...\n\n"
 	@ rm -rf bin > /dev/null 2>&1 || true
-	@ docker rm -f regtest > /dev/null 2>&1 || true
-	@ rm -rf regtest > /dev/null 2>&1 || true
-	@ rm -rf ethcli > /dev/null 2>&1 || true
+	@ cd test ; docker rm -f regtest > /dev/null 2>&1 || true
+	@ cd test ; sudo rm -rf regtest > /dev/null 2>&1 || true
+	@ cd test ; rm -rf ethcli > /dev/null 2>&1 || true

@@ -5,7 +5,7 @@ import (
 	"os"
 	"testing"
 
-	utils "github.com/alejoacosta74/rpc-proxy/pkg/internal/testutils"
+	utils "github.com/alejoacosta74/qproxy/pkg/internal/testutils"
 	"github.com/stretchr/testify/assert"
 )
 

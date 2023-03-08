@@ -6,11 +6,11 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/alejoacosta74/rpc-proxy/pkg/rpc"
-	"github.com/alejoacosta74/rpc-proxy/pkg/server/handlers"
+	"github.com/alejoacosta74/qproxy/pkg/rpc"
+	"github.com/alejoacosta74/qproxy/pkg/server/handlers"
 
-	"github.com/alejoacosta74/rpc-proxy/pkg/log"
-	"github.com/alejoacosta74/rpc-proxy/pkg/qtum"
+	"github.com/alejoacosta74/qproxy/pkg/log"
+	"github.com/alejoacosta74/qproxy/pkg/qtum"
 
 	"github.com/gorilla/mux"
 )

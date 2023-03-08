@@ -3,8 +3,8 @@ package qtum
 import (
 	"testing"
 
-	"github.com/alejoacosta74/rpc-proxy/pkg/internal/mocks"
-	utils "github.com/alejoacosta74/rpc-proxy/pkg/internal/testutils"
+	"github.com/alejoacosta74/qproxy/pkg/internal/mocks"
+	utils "github.com/alejoacosta74/qproxy/pkg/internal/testutils"
 	"github.com/stretchr/testify/assert"
 )
 

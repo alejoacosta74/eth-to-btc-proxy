@@ -1,8 +1,8 @@
 package rpc
 
 import (
-	"github.com/alejoacosta74/rpc-proxy/pkg/log"
-	"github.com/alejoacosta74/rpc-proxy/pkg/wallet"
+	"github.com/alejoacosta74/qproxy/pkg/log"
+	"github.com/alejoacosta74/qproxy/pkg/wallet"
 	"github.com/pkg/errors"
 )
 

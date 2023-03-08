@@ -9,9 +9,9 @@ import (
 	"math/big"
 	"net/http"
 
-	utils "github.com/alejoacosta74/rpc-proxy/pkg/internal/testutils"
-	"github.com/alejoacosta74/rpc-proxy/pkg/log"
-	"github.com/alejoacosta74/rpc-proxy/pkg/qtum"
+	utils "github.com/alejoacosta74/qproxy/pkg/internal/testutils"
+	"github.com/alejoacosta74/qproxy/pkg/log"
+	"github.com/alejoacosta74/qproxy/pkg/qtum"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"

@@ -5,6 +5,7 @@ import (
 	"errors"
 	"net/http"
 	"time"
+	"strings"
 
 	"github.com/alejoacosta74/qproxy/pkg/rpc"
 	"github.com/alejoacosta74/qproxy/pkg/server/handlers"
@@ -41,7 +42,7 @@ func NewServer(localAddress string, backendUrl string, qcli qtum.Iqcli, network 
 	router.Handle("/proxy", proxyHandler)
 
 	server := &http.Server{
-		Addr: localAddress,
+		Addr: strings.TrimSpace(localAddress),
 		// Good practice to set timeouts to avoid Slowloris attacks.
 		WriteTimeout: time.Second * 15,
 		ReadTimeout:  time.Second * 15,

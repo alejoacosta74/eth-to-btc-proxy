@@ -11,24 +11,25 @@ onError(){
 }
 
 cleanup() {
-	if [ "${CLEANUP:-true}" = false ]; then
-		echo "Skipping cleanup"
-		return
-	fi
-	# remove qtumd docker container
-	if docker ps | grep -q $QTUM_CONTAINER_NAME; then
-		echo "Removing qtumd docker container..."
-		docker rm -f $QTUM_CONTAINER_NAME
-	fi
-	# remove ethcli repo
-	rm -rf $ETHCLI_DIR
-	# remove qtum regtest data
-	sudo rm -rf "$QTUM_CONTAINER_NAME"
+	if [ "${CLEANUP:-false}" = true ]; then
+		# remove qtumd docker container
+		if docker ps | grep -q $QTUM_CONTAINER_NAME; then
+			echo "Removing qtumd docker container..."
+			docker rm -f $QTUM_CONTAINER_NAME
+		fi
+		# remove ethcli repo
+		rm -rf $ETHCLI_DIR
+		# remove qtum regtest data
+		sudo rm -rf "$QTUM_CONTAINER_NAME"
 
-	QPROXY_PID=$(ps aux | grep qproxy | grep -v grep | awk '{print $2}')
-	if [ -n "$QPROXY_PID" ]; then
-		echo "Killing qproxy..."
-		kill -9 $QPROXY_PID
+		QPROXY_PID=$(ps aux | grep qproxy | grep -v grep | awk '{print $2}')
+		if [ -n "$QPROXY_PID" ]; then
+			echo "Killing qproxy..."
+			kill -9 $QPROXY_PID
+		fi
+	else
+		echo "... skipping clean up. Set env CLEANUP=true if you want cleanup to run after test finishes"
+		return
 	fi
 }
 
@@ -45,6 +46,9 @@ spinner() {
 	sleep 0.3
 	done
 }
+
+# vars for qproxy
+QPROXY_ADDRESS=127.0.0.1:8085
 
 # vars for qtumd docker image
 QTUM_IMAGE="qtum/qtum"
@@ -75,7 +79,7 @@ ETHCLI_REPO="https://github.com/alejoacosta74/ethcli.git"
 ETHCLI_BRANCH="master"
 ETHCLI_DIR="ethcli"
 ETHCLI="ethcli/bin/ethcli"
-ETH_NODE_URL="http://localhost:8080/rpc"
+ETH_NODE_URL="$QPROXY_ADDRESS/rpc"
 KEY_B58="cMbgxCJrTYUqgcmiC1berh5DFrtY1KeU4PXZ6NZxgenniF1mXCRk"
 KEY="00821d8c8a3627adc68aa4034fea953b2f5da553fab312db3fa274240bd49f35"
 QTUM_ADDRESS="qUbxboqjBRp96j3La8D1RYkyqx5uQbJPoW" # qtum address hex: 7926223070547d2d15b2ef5e7383e541c338ffe9
@@ -138,10 +142,14 @@ run_qproxy() {
 	set -eE
 	cd ..
 	make build > /dev/null
-	echo "Starting qproxy..."
-	./bin/qproxy --qtumrpc "$QTUM_CONTAINER_URL" --user $USER --pass $PASSWORD &
-	cd test
+	echo "Starting qproxy on $QPROXY_ADDRESS ..."
+	./bin/qproxy --qtumrpc "$QTUM_CONTAINER_URL" --user $USER --pass $PASSWORD --address "$QPROXY_ADDRESS" &
 	sleep 5
+	if [ -z "$(ps aux | grep qproxy | grep -v grep)" ]; then
+		echo "Error: qproxy failed to start"
+		return 1
+	fi
+	cd test
 }
 
 # hex2dec() {
@@ -230,14 +238,13 @@ main () {
 
 	if [ "$SUCCESS" = true ]; then
 		echo "All integration tests passed"
-		exit 0
+		cleanup
+		return 0
 	else
 		echo "Some integration tests failed"
-		exit 1
+		return 1
 	fi
 	
-	cleanup
 }
 
 main
-

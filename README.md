@@ -1,6 +1,9 @@
+
 # `qproxy`: An eth to qtum signature conversion proxy
 
 `qproxy` is a proxy server that converts a signed Ethereum transaction to a Qtum (Bitcoin) signed transaction and sends it to the Qtum node for broadcasting.
+
+Simply put, `qproxy` enables a ethereum user or app to transact on the Qtum blockchain seamlessly, without having to worry about the underlying utxo model.
 
 ## How it works
 The proxy runs a JSON RPC server that implements the method `eth_sendRawTransaction` (as defined in the Ethereum JSON RPC API)
@@ -48,16 +51,25 @@ curl -X -d '{"jsonrpc":"2.0","method":"eth_sendRawTransaction","params":[" "0xd4
 
 ## Features
 - A reverse-proxy is available at endpoint `/proxy` that can be used to send requests to an ethereum node (like Ganache) and log both JSON RPC request and response (usefull for debugging and testing)
-- Command line configuration can be passed as flags, environment vars or within a `.qproxy.env` file
+- Command line configuration can be passed as flags, environment vars or within a `.config.yml` file
 - JSON RPC service implementation based on *go-ethereum* rpc module.
 - QTUM rpc client implementation based on *btcd* bitcoin rpc client
 - Support for different log levels (info, trace, debug)
 
 ## Run tests
 
-Unit tests can be run with `make unit-test`
+- Unit tests
+  
+   Unit tests can be run with: `make unit-test`
 
-Integration tests can be run with `make integration-test` 
+- Integration tests
+
+   Integration tests are run against a `qtumd` node running on a Docker container that is started and stopped automatically by the test suite.
+
+   A test ethereum tx is built using an [ethereum cli](https://github.com/alejoacosta74/ethcli), which also signs and sends the tx to `qproxy`.
+   The tx is then decoded and verified by `qproxy`, and a new qtum tx is built and signed using the same private key.
+
+   Run integration tests with: `make integration-test` 
 
 ## TODO
 
@@ -65,13 +77,13 @@ Integration tests can be run with `make integration-test`
 2. Implement bitcoin wallet to store private keys persistently
 3. ~~Implement ethereum signature verification~~ :white_check_mark:
 4. Implement all possible ethereum interaction use cases:
-   
-   a. Create a contract
 
-   b. Call a contract
+   a. ~~Send eth~~ :white_check_mark:
 
-   c. ...
-5. Add new test cases
-6. ~~Add support for EIP 1155 signature~~ :white_check_mark:
-7. Add persistent mapping between ethereum tx hash and qtum tx hash
-8. Implement automated integration tests for all use cases using Qtum regtest network
+   b. Create contract
+
+   c. Call contract
+
+5. ~~Add support for EIP 1155 signature~~ :white_check_mark:
+6. Add persistent mapping between ethereum tx hash and qtum tx hash
+7. Implement automated integration tests for all use cases using Qtum regtest network
